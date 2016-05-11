@@ -11,10 +11,12 @@ cellsize = 2
 epsg_code = 25833
 parallel_threads = 4
 
-def deleteShapeFile(fn):
-  if os.path.exists(fn):
-    driver = ogr.GetDriverByName("ESRI Shapefile")
-    driver.DeleteDataSource(fn)
+def deleteShapeFile(fn_short):
+  if os.path.exists(fn_short+".shp"):
+    os.remove(fn_short+".shp")
+    os.remove(fn_short+".prj")
+    os.remove(fn_short+".dbf")
+    os.remove(fn_short+".shx")
 
 def processFile(fn):
   if os.path.isfile(fn) & fn.endswith(suffix):
@@ -30,6 +32,7 @@ def processFile(fn):
     with open(fn, 'rb') as f:
       reader = csv.reader(f, delimiter=' ')
       for row in reader:
+        row = filter(None, row) #remove null elements (e.g. from duplicate separators)
         feature = ogr.Feature(layer.GetLayerDefn())
         wkt = "POINT(%f %f %f)" % (float(row[0]), float(row[1]), float(row[2]))
         point = ogr.CreateGeometryFromWkt(wkt)
@@ -43,21 +46,27 @@ def processFile(fn):
     cmd = "gdal_rasterize -of GTiff -3d -tr %i %i %s.shp %s.tif" % (cellsize, cellsize, fn_short, fn_short)
     print cmd
     return_code = call(cmd, shell=True)
-    deleteShapeFile(fn)
+    deleteShapeFile(fn_short)
     return fn_short+".tif"
 
 def main():
-  pool = multiprocessing.Pool(processes=parallel_threads)
-  files = os.listdir('.')
-  rasters = pool.map(processFile, files)
+  #pool = multiprocessing.Pool(processes=parallel_threads)
+  #files = os.listdir('.')
+  #rasters = pool.map(processFile, files)
+  #for fn in files:
+  #  processFile(fn)
 
   # mosaic all tif to raster
-  cmd = "gdalbuildvrt mosaic_index.vrt *.tif"
+  cmd = 'gdalbuildvrt mosaic_index.vrt *.tif'
   print cmd
   call(cmd, shell=True)
-  cmd = "gdal_translate mosaic_index.vrt mosaic.tif"
+  cmd = 'gdal_translate -co "COMPRESS=DEFLATE" -co "TILED=YES" -co "BIGTIFF=YES" mosaic_index.vrt mosaic.tif'
   print cmd
   call(cmd, shell=True)
+  cmd = 'gdaladdo -ro -r average --config COMPRESS_OVERVIEW DEFLATE mosaic.tif 4 8 16 32 64 128 256 512'
+  print cmd
+  call(cmd, shell=True)
+
 
 if __name__ == "__main__":
   #freeze_support()
