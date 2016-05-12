@@ -50,9 +50,9 @@ def processFile(fn):
     return fn_short+".tif"
 
 def main():
-  #pool = multiprocessing.Pool(processes=parallel_threads)
-  #files = os.listdir('.')
-  #rasters = pool.map(processFile, files)
+  pool = multiprocessing.Pool(processes=parallel_threads)
+  files = os.listdir('.')
+  rasters = pool.map(processFile, files)
   #for fn in files:
   #  processFile(fn)
 
