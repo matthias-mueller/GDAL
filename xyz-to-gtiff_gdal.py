@@ -9,7 +9,7 @@ suffix = '.xyz'
 suffix_len = len(suffix)
 cellsize = 2
 epsg_code = 25833
-no_data = -9999
+no_data = -99999
 parallel_threads = 4
 
 def deleteShapeFile(fn_short):
@@ -44,7 +44,7 @@ def processFile(fn):
     data_source.Destroy()
     
     # convert to raster and remove shapefile
-    cmd = "gdal_rasterize -of GTiff -3d -a_nodata %f -init %f -tr %i %i %s.shp %s.tif" % (no_data, no_data, cellsize, cellsize, fn_short, fn_short)
+    cmd = 'gdal_rasterize -of GTiff -3d -a_nodata %f -init %f -tr %i %i -co "COMPRESS=DEFLATE" -co "TILED=YES" %s.shp %s.tif' % (no_data, no_data, cellsize, cellsize, fn_short, fn_short)
     print cmd
     return_code = call(cmd, shell=True)
     deleteShapeFile(fn_short)
@@ -61,7 +61,7 @@ def main():
   cmd = 'gdalbuildvrt mosaic_index.vrt *.tif'
   print cmd
   call(cmd, shell=True)
-  cmd = 'gdal_translate -co "COMPRESS=DEFLATE" -co "TILED=YES" -co "PREDICTOR=3" -co "BIGTIFF=YES" mosaic_index.vrt mosaic.tif'
+  cmd = 'gdal_translate -co "COMPRESS=DEFLATE" -co "TILED=YES" -co "BIGTIFF=YES" mosaic_index.vrt mosaic.tif'
   print cmd
   call(cmd, shell=True)
   
